@@ -8,21 +8,23 @@
 #
 
 ####### Instalation des différents packets nécéssaires : 
-    list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus")
-    new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-    if(length(new.packages)) install.packages(new.packages)
-    lapply(list.of.packages,function(x){library(x,character.only=TRUE)}) 
+    .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio")
+    .new.packages <- .list.of.packages[!(.list.of.packages %in% installed.packages()[,"Package"])]
+    if(length(.new.packages)) install.packages(.new.packages)
+    lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
     
     
 
 ####### UI
 ui <- ui <- dashboardPage(
+  
   dashboardHeader(title = "Estimtion de copules bivariées", disable=TRUE),
   dashboardSidebar(
     sidebarMenuOutput("Menu")
   ),
   dashboardBody(
+    useShinyjs(),
     tabItems(
       tabItem(tabName="InputData",
         fluidRow(
@@ -57,43 +59,53 @@ ui <- ui <- dashboardPage(
       ),
       tabItem(tabName="MesureDep",
         fluidRow(
-          column(4,
-                 
-            h5(tags$b("Summary de vos données ")),
+          column(5,
+            h4(tags$b("Petit résumé du couple...")),
             verbatimTextOutput("resume2",placeholder = TRUE),
             fluidRow(
-              column(8,
-                     h5(tags$b("Coeffiencients de corélation linéaire de Pearson :")),
-                     verbatimTextOutput("pearsonr",placeholder = TRUE),
-                     h5(tags$b("Tau de Kendall")),
-                     verbatimTextOutput("kendaltau",placeholder = TRUE),
-                     h5(tags$b("Rho de Spearman")),
-                     verbatimTextOutput("spearmanrho",placeholder = TRUE)
+              h5(tags$b("    ")),
+              column(6,
+                h5(tags$b("Corélation linéaire de Pearson :")),
+                verbatimTextOutput("pearsonr",placeholder = TRUE)
               ),
-              column(4,
-                     textOutput("correlations"),
-                     div(id="SurvieDiv",
-                      checkboxInput("Survie", "Passer en copule Comonotone", value = FALSE, width = NULL)
-                     )
+              column(6,
+                h5(),
+                textOutput("correlations"),
+                div(id="SurvieDiv",
+                  checkboxInput("Survie", "Passer en copule Comonotone", value = FALSE, width = NULL)
+                )
+              )
+            ),
+            fluidRow(
+              column(6,
+                h5(tags$b("Tau de Kendall")),
+                verbatimTextOutput("kendaltau",placeholder = TRUE)
+
+              ),
+              column(6,
+                h5(tags$b("Rho de Spearman")),
+                verbatimTextOutput("spearmanrho",placeholder = TRUE)
               )
             ),
             h5(tags$b("Kolmogorov-Smirnov Test on raw data")),
             verbatimTextOutput("ksTest",placeholder = TRUE),
             h5(tags$b("Kolmogorov-Smirnov Test on standardized data")),
-            verbatimTextOutput("ksTest01",placeholder = TRUE)
+            verbatimTextOutput("ksTest01",placeholder = TRUE),
+            h5(tags$b("Quantile-Quantile Plot")),
+            plotOutput("qqplot"),
+            h5(tags$b("Chi-plot")),
+            plotOutput("chiPlot")
             
           ),
-          column(8,
+          column(7,
             column(6,
-              h5(tags$b("A propos de la première marginale...")),
-             plotOutput("hist1"),
-             plotOutput("descdistX"),
-             plotOutput("qqplot")
+              h4(tags$b("A propos de la première marginale...")),
+              plotOutput("hist1"),
+              plotOutput("descdistX")
             ),
             column(6,
-              h5(tags$b("A propos de la seconde marginale...")),
+              h4(tags$b("A propos de la seconde marginale...")),
               plotOutput("hist2"),
-              
               plotOutput("descdistY")
             )
           )
@@ -213,7 +225,7 @@ server <- function(input, output, session) {
     hist(y(), main=paste0(c("Histograme de ",nomY())),xlab=nomY())
   })                      # hitograme de Y
   output$qqplot <- renderPlot({
-    qplot(x(),y(),xlab=nomX(),ylab=nomY(),main=paste0(c("QQ-Plot")))
+    qplot(x(),y(),xlab=nomX(),ylab=nomY())
   })                     # QQPlot de X,Y
   output$ksTest <- renderPrint({
     ks.test(x(),y())
@@ -240,7 +252,10 @@ server <- function(input, output, session) {
         } else {
           if(cor(x(),y()) == 0 && cor(x(),y(),method="kendall") == 0 && cor(x(),y(),method="spearman") == 0 ){
             return("Nulle")
-      }}}
+          } else {
+          return(NULL)  
+          }
+        }}
     }
   })                           # Définit le type de corélation entre les 3 variables. 
   output$correlations <- renderText({
@@ -254,18 +269,27 @@ server <- function(input, output, session) {
   output$descdistY <- renderPlot({
     descdist(y(),boot=50)
   })                  # plot de decision de loi
-  output$survie <- reactive({
+  survie <- reactive({
     input$Survie
   })
+  
   observe({
     if (DataIsImputed()){
-      if (corelType() == "Positive" || corelType() == "Nulle") {
-        shinyjs::disable("SurvieDiv")
+      if (corelType() == "Negative") {
+        shinyjs::show("SurvieDiv")
+        updateCheckboxInput()
       } else {
-        shinyjs::enable("Surviediv")
+        shinyjs::hide("SurvieDiv")
       }
     }
   })
+  
+  
+  output$chiPlot <- renderPlot({
+    #BiCopChiPlot(x(),y())
+    chi.plot(x(),y())
+  })
+  
   output$Menu <- renderMenu({
     
     firstmenu = sidebarMenu(
