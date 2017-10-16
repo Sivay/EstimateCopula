@@ -8,7 +8,7 @@
 #
 
 ####### Instalation des différents packets nécéssaires : 
-    .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio")
+    .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio","copula","VineCopula")
     .new.packages <- .list.of.packages[!(.list.of.packages %in% installed.packages()[,"Package"])]
     if(length(.new.packages)) install.packages(.new.packages)
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
@@ -35,20 +35,12 @@ ui <- ui <- dashboardPage(
         ),
         fluidRow(
           column(9,
-            column(4,
-                  fileInput(inputId = 'datafile',label = "",accept=c('text/csv', 'text/comma-separated-values,text/plain'))
-            ),
-            column(4,
-                  selectInput(inputId = "selectRows",label="",choices = "",multiple=TRUE)
-            ),
-            column(4,
-                   uiOutput(outputId = "renamer")
-            ),
+            column(4,fileInput(inputId = 'datafile',label = "",accept=c('text/csv', 'text/comma-separated-values,text/plain'))),
+            column(4,selectInput(inputId = "selectRows",label="",choices = "",multiple=TRUE)),
+            column(4,uiOutput(outputId = "renamer")),
             span(textOutput("isBivariate"), style="color:red")
           ),
-          column(3,
-                 verbatimTextOutput("resume",placeholder = TRUE)
-          )
+          column(3,verbatimTextOutput("resume",placeholder = TRUE))
         ),
         h2("Vos données sont les suivantes :"),
         fluidRow(
@@ -69,7 +61,6 @@ ui <- ui <- dashboardPage(
                 verbatimTextOutput("pearsonr",placeholder = TRUE)
               ),
               column(6,
-                h5(),
                 textOutput("correlations"),
                 div(id="SurvieDiv",
                   checkboxInput("Survie", "Passer en copule Comonotone", value = FALSE, width = NULL)
@@ -91,27 +82,53 @@ ui <- ui <- dashboardPage(
             verbatimTextOutput("ksTest",placeholder = TRUE),
             h5(tags$b("Kolmogorov-Smirnov Test on standardized data")),
             verbatimTextOutput("ksTest01",placeholder = TRUE),
-            h5(tags$b("Quantile-Quantile Plot")),
-            plotOutput("qqplot"),
-            h5(tags$b("Chi-plot")),
-            plotOutput("chiPlot")
+            h5(tags$b("Test de dependence des extrèmes (basé sur la Kendall's Distribution)")),
+            verbatimTextOutput("evTestK1",placeholder = TRUE)
             
           ),
           column(7,
             column(6,
               h4(tags$b("A propos de la première marginale...")),
               plotOutput("hist1"),
+              fluidRow(
+                column(6, checkboxInput("XisDiscrete", "Variable discrete ?", value = FALSE)),
+                column(6, numericInput("Xboot", "# of Bootstrap Value", 50, min = 0, max = 500, step = 1))
+              ),
               plotOutput("descdistX")
             ),
             column(6,
               h4(tags$b("A propos de la seconde marginale...")),
               plotOutput("hist2"),
+              fluidRow(
+                column(6, checkboxInput("YisDiscrete", "Variable discrete ?", value = FALSE)),
+                column(6, numericInput("Yboot", "# of Bootstrap Value", 50, min = 0, max = 500, step = 1))
+              ),
               plotOutput("descdistY")
             )
           )
+        ),
+        fluidRow(
+          column(4,
+                 h5(tags$b("Quantile-Quantile Plot")),
+                 plotOutput("qqplot")
+                 ),
+          column(4,
+                 h5(tags$b("Chi-plot")),
+                 plotOutput("chiPlot")
+          ),
+          column(4,
+                 h5(tags$b("Rank-Rank Plot")),
+                 plotOutput("RankRankPlot")
+          )
         )
       ),
-      tabItem(tabName="ChoixCopule"
+      tabItem(tabName="ChoixCopule",
+              h2("Choix automatiuque d'une copule :"),
+              fluidRow(
+                column(1),
+                column(10,dataTableOutput("AutoChoose")),
+                column(1)
+              )
       ),
       tabItem(tabName="Resultat"
       )
@@ -264,10 +281,19 @@ server <- function(input, output, session) {
     if (corelType() == "Nulle"){ return("La correlation à l'air nulle entre les eux variables") }
   })               # output une phrase correspondant à ce type. 
   output$descdistX <- renderPlot({
-    descdist(x(),boot=50)
+    if(input$Xboot < 10){
+      descdist(x(),discrete = input$XisDiscrete)
+    } else {
+      descdist(x(),boot=input$Xboot,discrete = input$XisDiscrete)
+    }
   })                  # plot de decision de loi
   output$descdistY <- renderPlot({
-    descdist(y(),boot=50)
+    if (input$Yboot < 10){
+      descdist(y(),discrete = input$YisDiscrete)
+    } else {
+      descdist(y(),boot=input$Yboot,discrete = input$YisDiscrete)
+    }
+    
   })                  # plot de decision de loi
   survie <- reactive({
     input$Survie
@@ -289,6 +315,69 @@ server <- function(input, output, session) {
     #BiCopChiPlot(x(),y())
     chi.plot(x(),y())
   })
+  
+  output$RankRankPlot <- renderPlot({
+    n = length(x()+1)
+    plot(rank(x())/n,rank(y())/n,main="Rank-Rank plot")
+  })
+  
+  
+  output$evTestK1 <- renderPrint({
+    evTestK(cbind(x(),y()))
+  })
+  
+  
+  Bicopsel <- reactive({
+     aic <- BiCopSelect(pobs(x()),pobs(y()), selectioncrit="AIC", se=TRUE)
+     bic <- BiCopSelect(pobs(x()),pobs(y()), selectioncrit="BIC", se=TRUE)
+     llh <- BiCopSelect(pobs(x()),pobs(y()), selectioncrit="logLik", se=TRUE)
+     return(list(aic,bic,llh))
+  })
+  
+  output$AutoChoose <- renderDataTable({
+    # 
+    # bicopsel$aic$familyname
+    # bicopsel$aic$par
+    # bicopsel$par2
+    # bicopsel$aic$npars # number of parameters 
+    # bicopsel$aic$se # standard error for 1rst parameter
+    # bicolsom$aic$se2 # standard error for 2nd parameters
+    # bicopsel$aic$logLik
+    # $AIC
+    # $BIC
+    # $emptau
+    # p.value.indeptest
+    
+    rez <- Bicopsel()[[1]]
+    AIC <- c("AIC",rez$familyname,rez$par,rez$se,rez$par2,rez$se2,rez$logLik,rez$AIC,rez$BIC,rez$emptau,rez$p.value.indeptest)
+    
+    rez <- Bicopsel()[[2]]
+    BIC <- c("BIC",rez$familyname,rez$par,rez$se,rez$par2,rez$se2,rez$logLik,rez$AIC,rez$BIC,rez$emptau,rez$p.value.indeptest)
+    
+    
+    rez <- Bicopsel()[[3]]
+    logLik <- c("logLik",rez$familyname,rez$par,rez$se,rez$par2,rez$se2,rez$logLik,rez$AIC,rez$BIC,rez$emptau,rez$p.value.indeptest)
+
+    rez <- rbind(AIC,BIC,logLik)
+    colnames(rez) <- c("Critère de test",
+                    "Nom de famille",
+                   "Paramètre 1",
+                   "Se(Par1)",
+                   "Paramètre 2",
+                   "Se(Par2)",
+                   "Log-likelyhood",
+                   "AIC",
+                   "BIC",
+                   "Tau de kendall emp.",
+                   "P.value ( indep )")
+    
+    return(data.frame(rez))
+    
+  })
+
+  
+  
+  
   
   output$Menu <- renderMenu({
     
