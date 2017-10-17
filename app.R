@@ -13,7 +13,9 @@
     if(length(.new.packages)) install.packages(.new.packages)
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
+# bonjour a tous
     
+        
 # Coucou c'est MIKA
 # bonjour mike 
 #reponse à oscar
