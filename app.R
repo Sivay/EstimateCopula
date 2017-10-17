@@ -17,7 +17,7 @@
 # Coucou c'est MIKA
 # bonjour mike 
 #reponse à oscar
-#######
+########
 ui <- ui <- dashboardPage(
   
   dashboardHeader(title = "Estimtion de copules bivariées", disable=TRUE),
