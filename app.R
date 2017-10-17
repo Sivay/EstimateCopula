@@ -13,11 +13,8 @@
     if(length(.new.packages)) install.packages(.new.packages)
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
+# coucou c'est pierrot
 
-    #coucou c'est orsk
-# Coucou c'est MIKA
-# bonjour mike 
-#reponse à oscar
 ########
 ui <- ui <- dashboardPage(
   
