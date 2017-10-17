@@ -5,7 +5,7 @@
 # Find out more about building applications with Shiny here:
 #
 #    http://shiny.rstudio.com/
-#
+
 
 ####### Instalation des différents packets nécéssaires : 
     .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio","copula","VineCopula","shinyjs")
