@@ -14,9 +14,9 @@
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
     
-    
+# Coucou c'est MIKA
 
-####### UI
+#######
 ui <- ui <- dashboardPage(
   
   dashboardHeader(title = "Estimtion de copules bivariées", disable=TRUE),
