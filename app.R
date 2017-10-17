@@ -13,6 +13,7 @@
     if(length(.new.packages)) install.packages(.new.packages)
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
+<<<<<<< HEAD
 # bonjour a tous
     
         
@@ -20,6 +21,11 @@
 # bonjour mike 
 #reponse à oscar
 #######
+=======
+# coucou c'est pierrot
+
+########
+>>>>>>> 7197c3879a48f0fc2c299fad4cfef8714a24b968
 ui <- ui <- dashboardPage(
   
   dashboardHeader(title = "Estimtion de copules bivariées", disable=TRUE),
