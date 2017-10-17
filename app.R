@@ -8,15 +8,16 @@
 #
 
 ####### Instalation des différents packets nécéssaires : 
-    .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio","copula","VineCopula")
+    .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio","copula","VineCopula","shinyjs")
     .new.packages <- .list.of.packages[!(.list.of.packages %in% installed.packages()[,"Package"])]
     if(length(.new.packages)) install.packages(.new.packages)
     lapply(.list.of.packages,function(x){library(x,character.only=TRUE)}) 
     
     
-    
-
-####### UI
+# Coucou c'est MIKA
+# bonjour mike 
+#reponse à oscar
+#######
 ui <- ui <- dashboardPage(
   
   dashboardHeader(title = "Estimtion de copules bivariées", disable=TRUE),
@@ -370,12 +371,12 @@ server <- function(input, output, session) {
                    "BIC",
                    "Tau de kendall emp.",
                    "P.value ( indep )")
-    
+
     return(data.frame(rez))
     
   })
 
-  
+
   
   
   
