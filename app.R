@@ -1,7 +1,4 @@
 #
-#Pierrot est dans la place
-
-
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
@@ -10,7 +7,7 @@
 #    http://shiny.rstudio.com/
 #
 
-##### Instalation des différents packets nécéssaires : 
+####### Instalation des différents packets nécéssaires : 
     .list.of.packages <- c("shiny","shinydashboard","DT","fitdistrplus","CDVine","asbio","copula","VineCopula")
     .new.packages <- .list.of.packages[!(.list.of.packages %in% installed.packages()[,"Package"])]
     if(length(.new.packages)) install.packages(.new.packages)
